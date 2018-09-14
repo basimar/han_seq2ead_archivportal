@@ -1119,7 +1119,7 @@ sub intro {
     $writer->startTag(
         "ead",
         "audience"           => "external",
-    };
+    );
 
     $writer->startTag(
         "eadheader",
@@ -1200,7 +1200,7 @@ sub ead {
             "level" => $lvlarg{ $f351c{$sysnum} },
             "id"    => $isilsysnum{$sysnum}
         );
-    else {
+    } else {
         $writer->startTag(
             "archdesc",
             "level" => $lvlarg{ $f351c{$sysnum} },
