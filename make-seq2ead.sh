@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # make-seq2ead.sh
-#   Export-Skript für DSV05-Daten nach Kalliope im ead-Format
+#   Export-Skript für DSV05-Daten nach Archivportal Europa im ead-Format
 # 
 # author:   
 #   basil.marti@unibas.ch
@@ -13,14 +13,14 @@ DO_TRANSFORM=1
 DO_SPLIT=1
 DO_FINISH=1
 
-HOME=/opt/scripts/han_seq2ead_kalliope/
+HOME=/opt/scripts/han_seq2ead_archivportal/
 DATA=/opt/data/dsv05/
 FILES=tmp/split/*
 
 LINE='------------------------------------------------'
 
 echo $LINE
-echo "Exporting DSV05 data for Kalliope"
+echo "Exporting DSV05 data for Archivportal Europa"
 echo "Attention: Script takes several hours to run!"
 echo "START:  $(date)"
 echo $LINE
@@ -85,7 +85,7 @@ if [ "$DO_FINISH" == "1" ]; then
         rm $f.san
         sed 's/<ead>/<ead xmlns="urn:isbn:1-931666-22-9" xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink" xmlns:xsi="http:\/\/www.w3.org\/2001\/XMLSchema-instance" xsi:schemaLocation="urn:isbn:1-931666-22-9 http:\/\/www.loc.gov\/ead\/ead.xsd">/g' $f > $f.valid
         mv $f.valid $f
-        output="$(xmllint --noout --schema ead.xsd $f 2>&1)"
+        output="$(xmllint --noout --schema apeEAD.xsd $f 2>&1)"
     
         if [[ $output =~ fails.to.validate ]];
             then 

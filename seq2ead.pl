@@ -63,7 +63,7 @@ my %lvl = (
 
 # Hash with concordance 351$c and ead level attributes
 my %lvlarg = (
-    'Bestand=Fonds'                                    => 'collection',
+    'Bestand=Fonds'                                    => 'fonds',
     'Teilbestand=Sub-fonds=Sous-fonds'                 => 'fonds',
     'Serie=Series=Série'                               => 'class',
     'Teilserie=Sub-series=Sous-série'                  => 'class',
@@ -1116,7 +1116,10 @@ sub intro {
     my $sysnum = $_[0];
 
     $writer->xmlDecl("UTF-8");
-    $writer->startTag("ead");
+    $writer->startTag(
+        "ead",
+        "audience"           => "external",
+    };
 
     $writer->startTag(
         "eadheader",
@@ -1126,9 +1129,13 @@ sub intro {
         "countryencoding"    => "iso3166-1",
         "repositoryencoding" => "iso15511",
         "relatedencoding"    => "Marc21",
-        "audience"           => "external"
     );
-    $writer->startTag("eadid");
+    $writer->startTag(
+        "eadid",
+        "countrycode" => "CH",
+        "identifier"   => $sysnum,
+        "mainagencycode"   => $isilsysnum{$sysnum}
+    );
     $writer->endTag("eadid");
 
     $writer->startTag("filedesc");
@@ -1185,17 +1192,27 @@ sub ead {
     $sysnumcheck{$sysnum} = 1;
 
     # Depending on field 351, we use either an archdesc or a c-element
-    $writer->startTag(
-        $lvl{ $f351c{$sysnum} },
-        "level" => $lvlarg{ $f351c{$sysnum} },
-        "id"    => $isilsysnum{$sysnum}
-    );
+    # archdesc elements cannot have a system id
+
+    if ($lvl{ $f351c{$sysnum} } =~ /c/) {
+        $writer->startTag(
+            "c",
+            "level" => $lvlarg{ $f351c{$sysnum} },
+            "id"    => $isilsysnum{$sysnum}
+        );
+    else {
+        $writer->startTag(
+            "archdesc",
+            "level" => $lvlarg{ $f351c{$sysnum} },
+        );
+    }
+
     $writer->startTag("did");
 
     # Write unitid elements for signature information
-    simpletag( $f852p{$sysnum},  "unitid" );
-    simpletag( $f852Ap{$sysnum}, "unitid", "label", "Weitere Signatur" );
-    simpletag( $f852Ep{$sysnum}, "unitid", "label", "Frühere Signatur" );
+    simpletag( $f852p{$sysnum},  "unitid", "type", "call number" );
+    simpletag( $f852Ap{$sysnum}, "unitid", "type", "alternative call number" );
+    simpletag( $f852Ep{$sysnum}, "unitid", "type", "former call number" );
 
     # Write dao elements for links
     foreach my $i ( 0 .. ( @{ $f856u{$sysnum} } - 1 ) ) {
@@ -1221,15 +1238,7 @@ sub ead {
 
     # Write repository element for the library/archive
     $writer->startTag("repository");
-    $writer->startTag(
-        "corpname",
-        "role"           => "Bestandshaltende Einrichtung",
-        "normal"         => $f852a{$sysnum}[0],
-        "authfilenumber" => $isilnum{$sysnum},
-        "source"         => "ISIL" 
-    );
     $writer->characters( $f852a{$sysnum}[0] );
-    $writer->endTag("corpname");
     $writer->endTag("repository");
 
     # Write langmaterial element for language information, both codes and human readable
@@ -1250,9 +1259,6 @@ sub ead {
                 $writer->startTag("origination");
                 $writer->startTag(
                     "persname",
-                    "normal"         => $f700a{$sysnum}[$i],
-                    "role"           => "Bestandsbildner",
-                    "source"         => "GND",
                     "authfilenumber" => "$f7001{$sysnum}[$i]"
                 );
                 $writer->characters( $f700{$sysnum}[$i] );
@@ -1261,11 +1267,7 @@ sub ead {
             }
             else {
                 $writer->startTag("origination");
-                $writer->startTag(
-                    "persname",
-                    "normal" => $f700a{$sysnum}[$i],
-                    "role"   => "Bestandsbildner"
-                );
+                $writer->startTag("persname");
                 $writer->characters( $f700{$sysnum}[$i] );
                 $writer->endTag("persname");
                 $writer->endTag("origination");
@@ -1281,9 +1283,6 @@ sub ead {
                 $writer->startTag("origination");
                 $writer->startTag(
                     "corpname",
-                    "normal"         => $f710a{$sysnum}[$i],
-                    "role"           => "Bestandsbildner",
-                    "source"         => "GND",
                     "authfilenumber" => "$f7101{$sysnum}[$i]"
                 );
                 $writer->characters( $f710{$sysnum}[$i] );
@@ -1292,11 +1291,7 @@ sub ead {
             }
             else {
                 $writer->startTag("origination");
-                $writer->startTag(
-                    "corpname",
-                    "normal" => $f710a{$sysnum}[$i],
-                    "role"   => "Bestandsbildner"
-                );
+                $writer->startTag("corpname");
                 $writer->characters( $f710{$sysnum}[$i] );
                 $writer->endTag("corpname");
                 $writer->endTag("origination");
@@ -1312,9 +1307,6 @@ sub ead {
                 $writer->startTag("origination");
                 $writer->startTag(
                     "corpname",
-                    "normal"         => $f711a{$sysnum}[$i],
-                    "role"           => "Bestandsbildner",
-                    "source"         => "GND",
                     "authfilenumber" => "$f7111{$sysnum}[$i]"
                 );
                 $writer->characters( $f711{$sysnum}[$i] );
@@ -1323,11 +1315,7 @@ sub ead {
             }
             else {
                 $writer->startTag("origination");
-                $writer->startTag(
-                    "corpname",
-                    "normal" => $f711a{$sysnum}[$i],
-                    "role"   => "Bestandsbildner"
-                );
+                $writer->startTag("corpname");
                 $writer->characters( $f711{$sysnum}[$i] );
                 $writer->endTag("corpname");
                 $writer->endTag("origination");
@@ -1335,35 +1323,17 @@ sub ead {
         }
     }
 
-    # Generate unittitle element for field 245. Write additional unititle elements for 246 fields (with attribute label=245$i)
+    # Generate unittitle element for field 245. 
     if ( hasvalue( $f245{$sysnum} ) ) {
         $writer->startTag("unittitle");
         $writer->characters( $f245{$sysnum} );
         $writer->endTag("unittitle");
-
-        foreach my $i ( 0 .. ( @{ $f246{$sysnum} } - 1 ) ) {
-            $writer->startTag( "unittitle",
-                "label" => $f246i{$sysnum}[$i] );
-            $writer->startTag("title");
-            $writer->characters( $f246{$sysnum}[$i] );
-            $writer->endTag("title");
-            $writer->endTag("unittitle");
-        }
     }
     # If only fields 246 are present, use the first field in place of field 245
     else {
-        $writer->startTag( "unittitle", "label" => $f246i{$sysnum}[0] );
+        $writer->startTag("unittitle");
         $writer->characters( $f246{$sysnum}[0] );
         $writer->endTag("unittitle");
-
-        foreach my $i ( 1 .. ( @{ $f246{$sysnum} } - 1 ) ) {
-            $writer->startTag( "unittitle",
-                "label" => $f246i{$sysnum}[$i] );
-            $writer->startTag("title");
-            $writer->characters( $f246{$sysnum}[$i] );
-            $writer->endTag("title");
-            $writer->endTag("unittitle");
-        }
     }
     # Generate unitdate element for dates
     # For the attribute normal use field 046 (if only one field 046 is present) or field 008 (if multiple fields 046 are present).
@@ -1396,18 +1366,14 @@ sub ead {
 
     $writer->startTag("physdesc");
 
-    simpletag($f250{$sysnum},  "physfacet", "label", "Ausreifungsgrad" );
     simpletag($f300{$sysnum},  "extent" );
     simpletag($f300c{$sysnum}, "dimensions" );
-    simpletag($f340{$sysnum},  "physfacet", "label", "Material" );
-    simpletag($f563{$sysnum},  "physfacet", "label", "Einband" );
 
     $writer->endTag("physdesc");
 
     foreach my $i ( 0 .. ( @{ $f500{$sysnum} } - 1 ) ) {
         $writer->startTag( "note",
             "label"    => "Bemerkung",
-            "audience" => "external"
         );
         $writer->startTag("p");
         $writer->characters( $f500{$sysnum}[$i] );
@@ -1415,10 +1381,10 @@ sub ead {
         $writer->endTag("note");
     }
 
-    simpletag( $f525{$sysnum}, "abstract", "type", "Darin" );
 
     $writer->endTag("did");
 
+    simpletag_p( $f525{$sysnum},     "scopecontent", "Darin" );
     simpletag_p( $f505{$sysnum},     "scopecontent", "Inhaltsangabe" );
     simpletag_p( $f520{$sysnum},     "scopecontent", "Inhaltsangabe" );
     simpletag_p( $f351a{$sysnum},    "arrangement", "Ordnungszustand" );
@@ -1451,23 +1417,16 @@ sub ead {
                 # Depending whether the 600 field has a GND-link we treat the field differently
                 if ( $f6001{$sysnum}[$i] ne "" ) {
                     $writer->startTag(
-                        "persname",
-                        "role"           => "Erwähnte Familie",
-                        "normal"         => $f600a{$sysnum}[$i],
-                        "source"         => "GND",
+                        "famname",
                         "authfilenumber" => "$f6001{$sysnum}[$i]"
                     );
                     $writer->characters( $f600{$sysnum}[$i] );
-                    $writer->endTag("persname");
+                    $writer->endTag("famname");
                 }
                 else {
-                    $writer->startTag(
-                        "persname",
-                        "role"   => "Erwähnte Familie",
-                        "normal" => $f600a{$sysnum}[$i]
-                    );
+                    $writer->startTag("famname");
                     $writer->characters( $f600{$sysnum}[$i] );
-                    $writer->endTag("persname");
+                    $writer->endTag("famname");
                 }
             }
             # Normal persons in 600 fields
@@ -1476,20 +1435,13 @@ sub ead {
                 if ( $f6001{$sysnum}[$i] ne "" ) {
                     $writer->startTag(
                         "persname",
-                        "role"           => "Erwähnte Person",
-                        "normal"         => $f600a{$sysnum}[$i],
-                        "source"         => "GND",
                         "authfilenumber" => "$f6001{$sysnum}[$i]"
                     );
                     $writer->characters( $f600{$sysnum}[$i] );
                     $writer->endTag("persname");
                 }
                 else {
-                    $writer->startTag(
-                        "persname",
-                        "role"   => "Erwähnte Person",
-                        "normal" => $f600a{$sysnum}[$i]
-                    );
+                    $writer->startTag("persname");
                     $writer->characters( $f600{$sysnum}[$i] );
                     $writer->endTag("persname");
                 }
@@ -1503,20 +1455,13 @@ sub ead {
                 if ( $f7001{$sysnum}[$i] ne "" ) {
                     $writer->startTag(
                         "persname",
-                        "normal"         => $f700a{$sysnum}[$i],
-                        "source"         => "GND",
                         "authfilenumber" => "$f7001{$sysnum}[$i]",
-                        "role"           => $f700e{$sysnum}[$i]
                     );
                     $writer->characters( $f700{$sysnum}[$i] );
                     $writer->endTag("persname");
                 }
                 else {
-                    $writer->startTag(
-                        "persname",
-                        "normal" => $f700a{$sysnum}[$i],
-                        "role"   => $f700e{$sysnum}[$i]
-                    );
+                    $writer->startTag("persname");
                     $writer->characters( $f700{$sysnum}[$i] );
                     $writer->endTag("persname");
                 }
@@ -1546,20 +1491,13 @@ sub ead {
             if ( $f6101{$sysnum}[$i] ne "" ) {
                 $writer->startTag(
                     "corpname",
-                    "role"           => "Erwähnte Körperschaft",
-                    "normal"         => $f610a{$sysnum}[$i],
-                    "source"         => "GND",
                     "authfilenumber" => "$f6101{$sysnum}[$i]"
                 );
                 $writer->characters( $f610{$sysnum}[$i] );
                 $writer->endTag("corpname");
             }
             else {
-                $writer->startTag(
-                    "corpname",
-                    "role"   => "Erwähnte Körperschaft",
-                    "normal" => $f610a{$sysnum}[$i]
-                );
+                $writer->startTag("corpname");
                 $writer->characters( $f610{$sysnum}[$i] );
                 $writer->endTag("corpname");
             }
@@ -1572,20 +1510,13 @@ sub ead {
                 if ( $f7101{$sysnum}[$i] ne "" ) {
                     $writer->startTag(
                         "corpname",
-                        "normal"         => $f710a{$sysnum}[$i],
-                        "source"         => "GND",
                         "authfilenumber" => "$f7101{$sysnum}[$i]",
-                        "role"           => $f710e{$sysnum}[$i]
                     );
                     $writer->characters( $f710{$sysnum}[$i] );
                     $writer->endTag("corpname");
                 }
                 else {
-                    $writer->startTag(
-                        "corpname",
-                        "normal" => $f710a{$sysnum}[$i],
-                        "role"   => $f710e{$sysnum}[$i]
-                    );
+                    $writer->startTag("corpname");
                     $writer->characters( $f710{$sysnum}[$i] );
                     $writer->endTag("corpname");
                 }
@@ -1598,20 +1529,13 @@ sub ead {
             if ( $f6111{$sysnum}[$i] ne "" ) {
                 $writer->startTag(
                     "corpname",
-                    "role"           => "Erwähnte Körperschaft",
-                    "normal"         => $f611a{$sysnum}[$i],
-                    "source"         => "GND",
                     "authfilenumber" => "$f6111{$sysnum}[$i]"
                 );
                 $writer->characters( $f611{$sysnum}[$i] );
                 $writer->endTag("corpname");
             }
             else {
-                $writer->startTag(
-                    "corpname",
-                    "role"   => "Erwähnte Körperschaft",
-                    "normal" => $f611a{$sysnum}[$i]
-                );
+                $writer->startTag("corpname");
                 $writer->characters( $f611{$sysnum}[$i] );
                 $writer->endTag("corpname");
             }
@@ -1624,20 +1548,13 @@ sub ead {
                 if ( $f7111{$sysnum}[$i] ne "" ) {
                     $writer->startTag(
                         "corpname",
-                        "normal"         => $f711a{$sysnum}[$i],
-                        "source"         => "GND",
                         "authfilenumber" => "$f7111{$sysnum}[$i]",
-                        "role"           => $f711j{$sysnum}[$i]
                     );
                     $writer->characters( $f711{$sysnum}[$i] );
                     $writer->endTag("corpname");
                 }
                 else {
-                    $writer->startTag(
-                        "corpname",
-                        "normal" => $f711a{$sysnum}[$i],
-                        "role"   => $f711j{$sysnum}[$i]
-                    );
+                    $writer->startTag("corpname");
                     $writer->characters( $f711{$sysnum}[$i] );
                     $writer->endTag("corpname");
                 }
@@ -1692,52 +1609,16 @@ sub ead {
 
         # Place in field 651
         foreach my $i ( 0 .. ( @{ $f651{$sysnum} } - 1 ) ) {
-            # Depending whether the 651 field has a GND-link we treat the field differently
-            if ( $f6511{$sysnum}[$i] ne "" ) {
-                $writer->startTag(
-                    "geogname",
-                    "role"           => "Erwähnter Ort",
-                    "normal"         => $f651a{$sysnum}[$i],
-                    "source"         => "GND",
-                    "authfilenumber" => "$f6511{$sysnum}[$i]"
-                );
-                $writer->characters( $f651{$sysnum}[$i] );
-                $writer->endTag("geogname");
-            }
-            else {
-                $writer->startTag(
-                    "geogname",
-                    "role"   => "Erwähnter Ort",
-                    "normal" => $f651a{$sysnum}[$i]
-                );
-                $writer->characters( $f651{$sysnum}[$i] );
-                $writer->endTag("geogname");
-            }
+            $writer->startTag("geogname");
+            $writer->characters( $f651{$sysnum}[$i] );
+            $writer->endTag("geogname");
         }
 
         # Place in field 751
         foreach my $i ( 0 .. ( @{ $f751a{$sysnum} } - 1 ) ) {
-            # Depending whether the 751 field has a GND-link we treat the field differently
-            if ( $f7511{$sysnum}[$i] ne "" ) {
-                $writer->startTag(
-                    "geogname",
-                    "role"           => "Entstehungsort",
-                    "normal"         => $f751a{$sysnum}[$i],
-                    "source"         => "GND",
-                    "authfilenumber" => "$f7511{$sysnum}[$i]"
-                );
-                $writer->characters( $f751a{$sysnum}[$i] );
-                $writer->endTag("geogname");
-            }
-            else {
-                $writer->startTag(
-                    "geogname",
-                    "role"   => "Entstehungsort",
-                    "normal" => $f751a{$sysnum}[$i]
-                );
-                $writer->characters( $f751a{$sysnum}[$i] );
-                $writer->endTag("geogname");
-            }
+            $writer->startTag("geogname");
+            $writer->characters( $f751a{$sysnum}[$i] );
+            $writer->endTag("geogname");
         }
         $writer->endTag("controlaccess");
     }
@@ -1754,50 +1635,6 @@ sub ead {
 
         $writer->endTag("controlaccess");
     }
-
-    $writer->startTag("odd");
-    $writer->startTag("head");
-    $writer->characters("Steuerfelder");
-    $writer->endTag("head");
-
-    $writer->startTag("list");
-    $writer->startTag("item");
-
-    # Write first CAT-date (creation date)
-    if ( hasvalue( $catdate{$sysnum}[0] ) ) {
-        $writer->startTag(
-            "date",
-            "type"   => "Erfassungsdatum",
-            "normal" => $catdate{$sysnum}[0]
-        );
-        $writer->characters( $catdatehuman{$sysnum}[0] );
-        $writer->endTag("date");
-    }
-
-    # Write last CAT-date (last edit date)
-    if ( hasvalue( $catdate{$sysnum}[-1] ) ) {
-        $writer->startTag(
-            "date",
-            "type"   => "Modifikationsdatum",
-            "normal" => $catdate{$sysnum}[-1]
-        );
-        $writer->characters( $catdatehuman{$sysnum}[-1] );
-        $writer->endTag("date");
-    }
-
-    # Write syncronisation date = run daten of this script
-    $writer->startTag(
-        "date",
-        "type"   => "Synchronisationsdatum",
-        "normal" => $syncdate
-    );
-    $writer->characters($syncdatehuman);
-    $writer->endTag("date");
-
-    $writer->endTag("item");
-    $writer->endTag("list");
-
-    $writer->endTag("odd");
 
     # Write dsc tag for childern (only if the level of the present record = Bestand
     if ( $lvl{ $f351c{$sysnum} } eq "archdesc" ) {
