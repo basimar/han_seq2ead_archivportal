@@ -1194,16 +1194,16 @@ sub ead {
     # Depending on field 351, we use either an archdesc or a c-element
     # archdesc elements cannot have a system id
 
-    if ($lvl{ $f351c{$sysnum} } =~ /c/) {
+    if ( $lvl{ $f351c{$sysnum} } eq "archdesc" ) {
         $writer->startTag(
-            "c",
+             $lvl{ $f351c{$sysnum} }, 
             "level" => $lvlarg{ $f351c{$sysnum} },
-            "id"    => $isilsysnum{$sysnum}
         );
     } else {
         $writer->startTag(
-            "archdesc",
+            $lvl{ $f351c{$sysnum} }, 
             "level" => $lvlarg{ $f351c{$sysnum} },
+            "id"    => $isilsysnum{$sysnum}
         );
     }
 
