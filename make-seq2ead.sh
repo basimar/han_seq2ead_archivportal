@@ -69,7 +69,7 @@ if [ "$DO_SPLIT" == "1" ]; then
     rm *
     cd $HOME
 
-    perl split.pl tmp/ead.xml tmp/split isil
+    perl split.pl tmp/ead.xml tmp/split nam
 fi
 
 if [ "$DO_FINISH" == "1" ]; then
@@ -83,7 +83,7 @@ if [ "$DO_FINISH" == "1" ]; then
         xsltproc sanitise.xsl $f > $f.san
         xmllint --format $f.san > $f
         rm $f.san
-        sed 's/<ead>/<ead xmlns="urn:isbn:1-931666-22-9" xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink" xmlns:xsi="http:\/\/www.w3.org\/2001\/XMLSchema-instance" xsi:schemaLocation="urn:isbn:1-931666-22-9 http:\/\/www.loc.gov\/ead\/ead.xsd">/g' $f > $f.valid
+        sed 's/<ead audience="external">/<ead audience="external" xmlns="urn:isbn:1-931666-22-9" xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink" xmlns:xsi="http:\/\/www.w3.org\/2001\/XMLSchema-instance" xsi:schemaLocation="urn:isbn:1-931666-22-9 ead.xsd http:\/\/www.archivesportaleurope.net\/Portal\/profiles\/apeEAD.xsd http:\/\/www.w3.org\/1999\/xlink http:\/\/www.loc.gov\/standards\/xlink\/xlink.xsd">/g' $f > $f.valid
         mv $f.valid $f
         output="$(xmllint --noout --schema apeEAD.xsd $f 2>&1)"
     

@@ -1134,7 +1134,7 @@ sub intro {
         "eadid",
         "countrycode" => "CH",
         "identifier"   => $sysnum,
-        "mainagencycode"   => $isilsysnum{$sysnum}
+        "mainagencycode"   => $isilnum{$sysnum}
     );
     $writer->endTag("eadid");
 
@@ -1572,25 +1572,9 @@ sub ead {
         $writer->startTag("head");
         $writer->characters('Sachschlagwörter');
         $writer->endTag("head");
-
+    
         foreach my $i ( 0 .. ( @{ $f650{$sysnum} } - 1 ) ) {
-            # Depending whether the 650 field has a GND-link we treat the field differently
-            if ( defined $f6501{$sysnum}[$i] ) {
-                $writer->startTag(
-                    "subject",
-                    "normal"         => $f650a{$sysnum}[$i],
-                    "source"         => "GND",
-                    "authfilenumber" => "$f6501{$sysnum}[$i]"
-                );
-                $writer->characters( $f650{$sysnum}[$i] );
-                $writer->endTag("subject");
-            }
-            else {
-                $writer->startTag( "subject",
-                    "normal" => $f650a{$sysnum}[$i] );
-                $writer->characters( $f650{$sysnum}[$i] );
-                $writer->endTag("subject");
-            }
+            simpletag( $f650{$sysnum}[$i], "subject" );
         }
 
         $writer->endTag("controlaccess");
