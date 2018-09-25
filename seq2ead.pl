@@ -1132,10 +1132,11 @@ sub intro {
     );
     $writer->startTag(
         "eadid",
-        "countrycode" => "CH",
-        "identifier"   => $sysnum,
-        "mainagencycode"   => $isilnum{$sysnum}
+        "countrycode"    => "CH",
+        "identifier"     => $isilnum{$sysnum} . "_" . $sysnum,
+        "mainagencycode" => $isilnum{$sysnum}
     );
+    $writer->characters( $sysnum );
     $writer->endTag("eadid");
 
     $writer->startTag("filedesc");
