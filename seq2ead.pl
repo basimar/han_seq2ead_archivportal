@@ -203,6 +203,7 @@ my (
     %f264,             %f300,            %f300c,
     %f340,             %f351a,           %f351c,
     %f490,             %f500,            %f505,
+    %f490i,
     %f506,             %f510,            %f520,
     %f525,             %f541,            %f544,
     %f545,             %f555,            %f561,
@@ -261,6 +262,7 @@ $importer->each(
         my $f351a         = marc_map( $data, '351a' );
         my $f351c         = marc_map( $data, '351c' );
         my $f490          = marc_map( $data, '490w' );
+        my $f490i         = marc_map( $data, '490i' );
         my @f500          = marc_map( $data, '500[  ]a' );
         my @f505a         = marc_map( $data, '505a' );
         my @f505n         = marc_map( $data, '505n' );
@@ -393,6 +395,7 @@ $importer->each(
         my @f856u           = marc_map( $data, '856u' );
         my @f856z           = marc_map( $data, '856z' );
         my $f773            = marc_map( $data, '773w' );
+        my $f773j           = marc_map( $data, '773j' );
         my $f909            = marc_map( $data, '909f' );
         my @catdate         = marc_map( $data, 'CATc' );
 
@@ -591,6 +594,9 @@ $importer->each(
         $f490  = sprintf( "%-9.9d", $f490 );
         $f773 = sprintf( "%-9.9d", $f773 );
         $f490 = $f773 unless $f490;
+
+        # Edit sorting field: If field 773 is present, overwrite field 490 with the contents of field 773
+        $f490i = $f773j unless $f490i;
 
         # Generate content note from field 505 subfields
         my @f505;
@@ -881,6 +887,7 @@ $importer->each(
             $f563{$sysnum}             = [@f563];
             $f581{$sysnum}             = [@f581];
             $f490{$sysnum}             = $f490;
+            $f490i{$sysnum}            = $f490i;
             $f852{$sysnum}             = $f852;
             $f852a{$sysnum}            = [@f852a];
             $f852p{$sysnum}            = [@f852p];
@@ -929,6 +936,10 @@ $importer->each(
         }
     }
 );
+
+#Sort the sysnum-array so that the hierarchies are correct:
+
+@sysnum = sort { $f490i{$a} <=> $f490i{$b} } @sysnum;
 
 #Now we're ready to being creating ead-files. First we select all records with level=Bestand and build up an ead-file
 #containint their children records. Exception: The pseudo records for unlinked records.
@@ -1224,19 +1235,6 @@ sub ead {
         $writer->endTag("dao");
     }
 
-    # Write a link to the HAN OPAC (exception: pseudo records for unlinked records)
-
-    unless ( $f909{$sysnum} =~ /einzel/ ) {
-        $writer->startTag(
-            "dao", [ $xlink, "type" ] => "simple",
-            [ $xlink, "show" ]        => "embed",
-            [ $xlink, "actuate" ]     => "onLoad",
-            [ $xlink, "href" ]        => 'http://aleph.unibas.ch/F/?local_base=DSV05&con_lng=GER&func=find-b&find_code=SYS&request=' . $sysnum,
-            [ $xlink, "title" ] => "Katalogeintrag im Verbundkatalog HAN"
-        );
-        $writer->endTag("dao");
-    }
-
     # Write repository element for the library/archive
     $writer->startTag("repository");
     $writer->characters( $f852a{$sysnum}[0] );
@@ -1398,6 +1396,24 @@ sub ead {
     simpletag_p( $f544{$sysnum},     "relatedmaterial", "Verwandte Verzeichnungseinheiten" );
     simpletag_p( $f545{$sysnum},     "bioghist",        "Biographische Notiz" );
     simpletag_p( $f555{$sysnum},     "otherfindaid",    "Weitere Findmittel" );
+    
+    # Write a link to the HAN OPAC (exception: pseudo records for unlinked records)
+    
+    unless ( $f909{$sysnum} =~ /einzel/ ) {
+        $writer->startTag("otherfindaid");
+        $writer->startTag("p");
+        $writer->startTag("extref" ,
+                [ $xlink, "type" ]        => "simple",
+                [ $xlink, "show" ]        => "embed",
+                [ $xlink, "actuate" ]     => "onLoad",
+                [ $xlink, "href" ]        => 'http://aleph.unibas.ch/F/?local_base=DSV05&con_lng=GER&func=find-b&find_code=SYS&request=' . $sysnum,
+                [ $xlink, "title" ]       => "Katalogeintrag im Verbundkatalog HAN"
+            );
+        $writer->endTag("extref");
+        $writer->endTag("p");
+        $writer->endTag("otherfindaid");
+    };
+
     simpletag_p( $f561{$sysnum},     "custodhist",      "Angaben zur Herkunft" );
 
     #Write controlacess element for persons, if there are 600 or 700 fields present (except 700$e=Aktenbildner fields)
