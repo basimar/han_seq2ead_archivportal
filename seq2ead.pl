@@ -11,6 +11,9 @@ use Data::Dumper;
 use XML::Writer;
 use IO::File;
 
+# Sortierung von Signaturen
+use Sort::Naturally;
+
 # Unicode-support in the Perl script and for output
 use utf8;
 binmode STDOUT, ":utf8";
@@ -595,9 +598,14 @@ $importer->each(
         $f773 = sprintf( "%-9.9d", $f773 );
         $f490 = $f773 unless $f490;
 
-        # Edit sorting field: If field 773 is present, overwrite field 490 with the contents of field 773
+        # Edit sorting field: If field 490i not present, overwrite it with 773j 
         $f490i = $f773j unless $f490i;
-
+        
+        # Edit sorting field: If field 490i not present, overwrite it with 852p 
+        unless ( $f490i ) {
+            $f490i = $f852p[0]; 
+        }
+        
         # Generate content note from field 505 subfields
         my @f505;
         my $f505_max = maxarray(
@@ -938,8 +946,9 @@ $importer->each(
 );
 
 #Sort the sysnum-array so that the hierarchies are correct:
+@sysnum = sort { ncmp($f490i{$a},$f490i{$b}) } @sysnum;
 
-@sysnum = sort { $f490i{$a} <=> $f490i{$b} } @sysnum;
+for (@sysnum) { print $f490i{$_} . "\n"; }
 
 #Now we're ready to being creating ead-files. First we select all records with level=Bestand and build up an ead-file
 #containint their children records. Exception: The pseudo records for unlinked records.
@@ -1659,9 +1668,9 @@ sub ead {
 sub addchildren {
     # Check for each record (=keys f490) if there is a record with the system number of the present record ($_[0]). If found, execute
     # the ead sub for this record.
-    for my $child ( keys %f490 ) {
-        if ( $f490{$child} == $_[0] ) {
-            ead($child);
+    for (@sysnum) {
+        if ( $f490{$_} == $_[0] ) {
+            ead($_);
         }
     }
 }

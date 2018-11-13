@@ -37,7 +37,7 @@ if [ "$DO_DOWNLOAD" == "1" ]; then
     # ./download-dsv05-sequential.sh 
     # mv ./dsv05.seq input/
 
-    mv $DATA/dsv05.seq $HOME/input/
+    cp $DATA/dsv05.seq $HOME/input/
 fi
 
 if [ "$DO_TRANSFORM" == "1" ]; then
@@ -69,7 +69,7 @@ if [ "$DO_SPLIT" == "1" ]; then
     rm *
     cd $HOME
 
-    perl split.pl tmp/ead.xml tmp/split nam
+    perl split.pl tmp/ead.xml tmp/split isil
 fi
 
 if [ "$DO_FINISH" == "1" ]; then

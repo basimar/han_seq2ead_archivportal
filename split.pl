@@ -46,10 +46,62 @@ while (my $line = <$eaddata>) {
 	$sys = substr($sys,-10,-1);
     }
 
-    if ($line =~ /<corpname role="Bestandshaltende Einrichtung"/) {
+    if ($line =~ /<\/repository/) {
         $isil = $line;
 	chomp $isil;
-	$isil = substr($isil,-26,-15);
+	$isil =~ s/<\/repository//g;
+	$isil =~ s/^>//g;
+	$isil =~ s/ /-/g;
+	$name =~ s/ä/ae/g;
+	$isil =~ s/Ä/Ae/g;
+	$isil =~ s/ö/oe/g;
+	$isil =~ s/Ö/Oe/g;
+	$isil =~ s/ü/ue/g;
+	$isil =~ s/Ü/Ue/g;
+	$isil =~ s/ë/e/g;
+	$isil =~ s/Ë/E/g;
+	$isil =~ s/é/e/g;
+	$isil =~ s/É/E/g;
+	$isil =~ s/è/e/g;
+	$isil =~ s/È/E/g;
+	$isil =~ s/ê/e/g;
+	$isil =~ s/Ê/E/g;
+	$isil =~ s/à/a/g;
+	$isil =~ s/À/A/g;
+	$isil =~ s/á/a/g;
+	$isil =~ s/Á/A/g;
+	$isil =~ s/â/a/g;
+	$isil =~ s/Â/A/g;
+	$isil =~ s/î/i/g;
+	$isil =~ s/Î/I/g;
+	$isil =~ s/ó/o/g;
+	$isil =~ s/Ó/O/g;
+	$isil =~ s/ô/o/g;
+	$isil =~ s/Ô/O/g;
+	$isil =~ s/ń/n/g;
+	$isil =~ s/Ń/N/g;
+	$isil =~ s/\(//g;
+	$isil =~ s/\)//g;
+	$isil =~ s/\[//g;
+	$isil =~ s/\]//g;
+	$isil =~ s/\///g;
+	$isil =~ s/\\//g;
+	$isil =~ s/=//g;
+	$isil =~ s/\.//g;
+	$isil =~ s/,//g;
+	$isil =~ s/'//g;
+	$isil =~ s/’//g;
+	$isil =~ s/‘//g;
+	$isil =~ s/://g;
+	$isil =~ s/‐/-/g;
+	$isil =~ s/–/-/g;
+	$isil =~ s/"//g;
+	$isil =~ s/&amp;//g;
+	$isil =~ s/\?//g;
+	$isil =~ s/__/-/g;
+	$isil =~ s/_-/-/g;
+	$isil =~ s/---/-/g;
+	$isil =~ s/--/-/g;
     }
 
     if ($line =~ /<\/titleproper/ ) {
@@ -117,7 +169,7 @@ while (my $line = <$eaddata>) {
 	if ($nametype == 1) {
             $exportfile = "$outputpath/$name.xml";             
 	} elsif ($nametype == 2) {
-	    $exportfile = "$outputpath/ead_CH-001880-7_" . $isil . "_" . $sys . ".xml";
+	    $exportfile = "$outputpath/ead_CH-001880-7_" . $isil . "_" . $name . ".xml";
 	} else {
             $number = sprintf("%05d", $i);	
 	    $exportfile = "$outputpath/han$number.xml";   # generate a new filename
