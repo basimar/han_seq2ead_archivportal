@@ -10,5 +10,6 @@ zip Appenzell-KB.zip *KB-Appen*
 zip Luzern-ZHB.zip *Luzern-ZHB*
 zip Solothurn-ZB.zip *Solothurn-ZB*
 zip StGallen-SB.zip *St-Gallen-Stif*
+zip StGallen-KB.zip *St-Gallen-KB*
 zip Zofingen-SB.zip *Zofingen-SB*
 

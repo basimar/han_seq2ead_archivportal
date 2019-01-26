@@ -91,6 +91,7 @@ my %isil = (
     'Solothurn ZB'                                => 'CH-000045-X',
     'Luzern ZHB'                                  => 'CH-000006-1',
     'Bern UB Schweizerische Osteuropabibliothek'  => 'CH-000284-9',
+    'Bern UB Bibliothek Münstergasse'             => 'CH-000011-1',
     'Zofingen SB'                                 => 'CH-000048-1'
 );
 
@@ -223,7 +224,8 @@ my (
     %f7111,            %f751a,           %f7511,
     %f773,             %f852,            %f852a,
     %f852p,            %f852Ap,          %f852Ep,
-    %f856u,            %f856z,           %f909,
+    %f8561u,           %f8561z,         
+    %f8562u,           %f8562z,          %f909,
     %isilsysnum,       %isilnum,         %languages,
     %langcodes,        %catdate,         %catdatehuman,
     %sysnumcheck
@@ -395,8 +397,10 @@ $importer->each(
         my @f852p           = marc_map( $data, '852[  ]p' );
         my @f852Ap          = marc_map( $data, '852[A ]p' );
         my @f852Ep          = marc_map( $data, '852[E ]p' );
-        my @f856u           = marc_map( $data, '856u' );
-        my @f856z           = marc_map( $data, '856z' );
+        my @f8561u          = marc_map( $data, '856[ 1]u' );
+        my @f8561z          = marc_map( $data, '856[ 1]z' );
+        my @f8562u          = marc_map( $data, '856[ 2]u' );
+        my @f8562z          = marc_map( $data, '856[ 2]z' );
         my $f773            = marc_map( $data, '773w' );
         my $f773j           = marc_map( $data, '773j' );
         my $f909            = marc_map( $data, '909f' );
@@ -599,11 +603,13 @@ $importer->each(
         $f490 = $f773 unless $f490;
 
         # Edit sorting field: If field 490i not present, overwrite it with 773j 
-        $f490i = $f773j unless $f490i;
+        unless ( $f490i =~ /^0$/ ) {
+            $f490i = $f773j unless $f490i;
+        }
         
         # Edit sorting field: If field 490i not present, overwrite it with 852p 
-        unless ( $f490i ) {
-            $f490i = $f852p[0]; 
+        unless ( $f490i =~ /^0$/ ) {
+            $f490i = $f852p[0] unless $f490i; 
         }
         
         # Generate content note from field 505 subfields
@@ -777,6 +783,7 @@ $importer->each(
             isbd( $f700[$i], $f700s[$i], ". " );
             isbd( $f700[$i], $f700o[$i], ". " );
             isbd( $f700[$i], $f700h[$i], ". " );
+            isbd( $f700[$i], $f700e[$i], " (", ")" );
         }
 
         # Generate an author field from the 710 and 110 subfields
@@ -787,6 +794,7 @@ $importer->each(
             $f710[$i] = $f710a[$i];
             isbd( $f710[$i], $f710b[$i], ". " );
             isbd( $f710[$i], $f710g[$i], " (", ")" );
+            isbd( $f710[$i], $f710e[$i], " (", ")" );
         }
 
         # Generate an author field from the 711 and 111 subfields
@@ -797,6 +805,7 @@ $importer->each(
             $f711[$i] = $f711a[$i];
             isbd( $f711[$i], $f711e[$i], ". " );
             isbd( $f711[$i], $f711g[$i], " (", ")" );
+            isbd( $f711[$i], $f711e[$i], " (", ")" );
         }
 
         # Replace MARC relator codes (fields 700$e, 710$e and 711$j with ead codes
@@ -833,7 +842,7 @@ $importer->each(
         }
 
         # If the 856$z field contains "Digitalisat" remove the entire field except the word "Digitalisat"
-        foreach (@f856z) {
+        foreach (@f8561z) {
             s/^.*Digitalisat.*$/Digitalisat/g;
         }
 
@@ -932,8 +941,10 @@ $importer->each(
             $f711j{$sysnum}            = [@f711j];
             $f751a{$sysnum}            = [@f751a];
             $f7511{$sysnum}            = [@f7511];
-            $f856u{$sysnum}            = [@f856u];
-            $f856z{$sysnum}            = [@f856z];
+            $f8561u{$sysnum}           = [@f8561u];
+            $f8561z{$sysnum}           = [@f8561z];
+            $f8562u{$sysnum}           = [@f8562u];
+            $f8562z{$sysnum}           = [@f8562z];
             $f909{$sysnum}             = $f909;
             $isilsysnum{$sysnum}       = $isilsysnum;
             $isilnum{$sysnum}          = $isilnum;
@@ -1004,6 +1015,9 @@ foreach (@sysnum) {
         }
         elsif ( $f852{$_} =~ /Osteuropabibliothek/ ) {
             $f490{$_} = '000324579' unless $_ == '000324579';
+        }
+        elsif ( $f852{$_} =~ /Münstergasse/ ) {
+            $f490{$_} = '000345931' unless $_ == '000345931';
         }
         elsif ( $f852{$_} =~ /Zofingen/ ) {
             $f490{$_} = '000336368' unless $_ == '000336368';
@@ -1234,15 +1248,44 @@ sub ead {
     simpletag( $f852p{$sysnum},  "unitid", "type", "call number" );
     simpletag( $f852Ap{$sysnum}, "unitid", "type", "alternative call number" );
     simpletag( $f852Ep{$sysnum}, "unitid", "type", "former call number" );
+    
+    # Write a link to the HAN OPAC (exception: pseudo records for unlinked records)
+    
+    unless ( $f909{$sysnum} =~ /einzel/ ) {
+    
+        $writer->startTag("unitid");
+        $writer->startTag("extptr" ,
+            [ $xlink, "type" ]        => "simple",
+            [ $xlink, "show" ]        => "embed",
+            [ $xlink, "actuate" ]     => "onLoad",
+            [ $xlink, "href" ]        => 'http://aleph.unibas.ch/F/?local_base=DSV05&con_lng=GER&func=find-b&find_code=SYS&request=' . $sysnum,
+            [ $xlink, "title" ]       => "Katalogeintrag im Verbundkatalog HAN"
+        );
+        $writer->endTag("extptr");
+        $writer->endTag("unitid");
+    };
 
-    # Write dao elements for links
-    foreach my $i ( 0 .. ( @{ $f856u{$sysnum} } - 1 ) ) {
+    # Write dao elements for digital object links
+    foreach my $i ( 0 .. ( @{ $f8561u{$sysnum} } - 1 ) ) {
         $writer->startTag(
-            "dao", [ $xlink, "href" ] => $f856u{$sysnum}[$i],
-            [ $xlink, "title" ] => $f856z{$sysnum}[$i]
+            "dao", [ $xlink, "href" ] => $f8561u{$sysnum}[$i],
+            [ $xlink, "title" ] => $f8561z{$sysnum}[$i]
         );
         $writer->endTag("dao");
     }
+    
+    # Write dao elements for related object links
+    $writer->startTag( "relatedmaterials");
+    foreach my $i ( 0 .. ( @{ $f8562u{$sysnum} } - 1 ) ) {
+        $writer->startTag( "p");
+        $writer->startTag( "extref",
+            [ $xlink, "href" ] => $f8562u{$sysnum}[$i],
+            [ $xlink, "title" ] => $f8562z{$sysnum}[$i]
+        );
+        $writer->endTag("extref");
+        $writer->endTag( "p");
+    }
+    $writer->endTag( "relatedmaterials");
 
     # Write repository element for the library/archive
     $writer->startTag("repository");
@@ -1397,7 +1440,7 @@ sub ead {
     simpletag_p( $f520{$sysnum},     "scopecontent", "Inhaltsangabe" );
     simpletag_p( $f351a{$sysnum},    "arrangement", "Ordnungszustand" );
     simpletag_p( $f506{$sysnum},     "userestrict", "Benutzungsbeschränkung" );
-
+    
     simpletag_b( $f510{$sysnum},     "bibliography", "Bibliographie" );
     simpletag_b( $f581{$sysnum},     "bibliography", "Literaturhinweise" );
 
@@ -1405,24 +1448,6 @@ sub ead {
     simpletag_p( $f544{$sysnum},     "relatedmaterial", "Verwandte Verzeichnungseinheiten" );
     simpletag_p( $f545{$sysnum},     "bioghist",        "Biographische Notiz" );
     simpletag_p( $f555{$sysnum},     "otherfindaid",    "Weitere Findmittel" );
-    
-    # Write a link to the HAN OPAC (exception: pseudo records for unlinked records)
-    
-    unless ( $f909{$sysnum} =~ /einzel/ ) {
-        $writer->startTag("otherfindaid");
-        $writer->startTag("p");
-        $writer->startTag("extref" ,
-                [ $xlink, "type" ]        => "simple",
-                [ $xlink, "show" ]        => "embed",
-                [ $xlink, "actuate" ]     => "onLoad",
-                [ $xlink, "href" ]        => 'http://aleph.unibas.ch/F/?local_base=DSV05&con_lng=GER&func=find-b&find_code=SYS&request=' . $sysnum,
-                [ $xlink, "title" ]       => "Katalogeintrag im Verbundkatalog HAN"
-            );
-        $writer->endTag("extref");
-        $writer->endTag("p");
-        $writer->endTag("otherfindaid");
-    };
-
     simpletag_p( $f561{$sysnum},     "custodhist",      "Angaben zur Herkunft" );
 
     #Write controlacess element for persons, if there are 600 or 700 fields present (except 700$e=Aktenbildner fields)
