@@ -8,10 +8,11 @@
 #
 # history:
 
-DO_DOWNLOAD=1
-DO_TRANSFORM=1
+DO_DOWNLOAD=0
+DO_TRANSFORM=0
 DO_SPLIT=1
 DO_FINISH=1
+DO_PACKAGE=1
 
 HOME=/opt/scripts/han_seq2ead_archivportal/
 DATA=/opt/data/dsv05/
@@ -62,11 +63,11 @@ if [ "$DO_SPLIT" == "1" ]; then
     cd $HOME
 
     cd output/validation
-    rm *
+    rm -r *
     cd $HOME
 
     cd output/no_validation
-    rm *
+    rm -r *
     cd $HOME
 
     perl split.pl tmp/ead.xml tmp/split isil
@@ -97,4 +98,12 @@ if [ "$DO_FINISH" == "1" ]; then
         fi 
     done
 fi
+
+if [ "$DO_PACKAGE" == "1" ]; then
+    echo $LINE
+    echo "*Packaging files into zip-Archives" 
+    echo $LINE
+    ./package.sh
+fi
+
 echo "END:  $(date)"

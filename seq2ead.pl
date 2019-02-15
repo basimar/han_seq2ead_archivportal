@@ -55,13 +55,15 @@ die "Argumente: $0 Input-Dokument (alephseq), Output Dokument\n"
 
 # Hash with concordance 351$c and ead-elements
 my %lvl = (
-    'Bestand=Fonds'                     => 'archdesc',
-    'Teilbestand=Sub-fonds=Sous-fonds'  => 'c',
-    'Serie=Series=Série'                => 'c',
-    'Teilserie=Sub-series=Sous-série'   => 'c',
-    'Dossier=File'                      => 'c',
-    'Teildossier=Sub-file=Sous-dossier' => 'c',
-    'Dokument=Item=Pièce'               => 'c'
+    'Abteilung=Division'                               => 'archdesc',
+    'Hauptabteilung=Main division=Division principale' => 'archdesc',
+    'Bestand=Fonds'                                    => 'archdesc',
+    'Teilbestand=Sub-fonds=Sous-fonds'                 => 'c',
+    'Serie=Series=Série'                               => 'c',
+    'Teilserie=Sub-series=Sous-série'                  => 'c',
+    'Dossier=File'                                     => 'c',
+    'Teildossier=Sub-file=Sous-dossier'                => 'c',
+    'Dokument=Item=Pièce'                              => 'c',
 );
 
 # Hash with concordance 351$c and ead level attributes
@@ -73,8 +75,8 @@ my %lvlarg = (
     'Dossier=File'                                     => 'file',
     'Teildossier=Sub-file=Sous-dossier'                => 'file',
     'Dokument=Item=Pièce'                              => 'item',
-    'Abteilung=Division'                               => 'file',
-    'Hauptabteilung=Main division=Division principale' => 'file'
+    'Abteilung=Division'                               => 'fonds',
+    'Hauptabteilung=Main division=Division principale' => 'fonds'
 );
 
 # Hash with concordance 852$a and ISIL
@@ -862,8 +864,8 @@ $importer->each(
         # Some records don't have to be exported as ead (records with 909-code hide this and some library specific records)
         unless (
                   ( $f909 =~ /hide_this/ )
-               || ( $f351c =~ /Abteilung/ )
-               || ( $f351c =~ /Hauptabteilung/ )
+               || ( $f351c =~ /Abteilung/ && $f852a[0] eq 'Basel UB' )
+               || ( $f351c =~ /Hauptabteilung/ && $f852a[0] eq 'Basel UB' )
                || ( $f909 =~ /collect_this.handschrift/ && $f852a[0] eq 'Basel UB' )
                || ( $f909 =~ /collect_this.miszellan/ && $f852a[0] eq 'Basel UB' )
                || ( $f909 =~ /collect_this.handschrift/ && $f852a[0] eq 'KB Aargau' )
@@ -959,13 +961,14 @@ $importer->each(
 #Sort the sysnum-array so that the hierarchies are correct:
 @sysnum = sort { ncmp($f490i{$a},$f490i{$b}) } @sysnum;
 
-for (@sysnum) { print $f490i{$_} . "\n"; }
+#Optional for debuggin print sorted 490i subfield
+#for (@sysnum) { print $f490i{$_} . "\n"; }
 
 #Now we're ready to being creating ead-files. First we select all records with level=Bestand and build up an ead-file
 #containint their children records. Exception: The pseudo records for unlinked records.
 
 foreach (@sysnum) {
-    if ( ( $f351c{$_} =~ /Bestand/ ) && !( $f909{$_} =~ /einzel/ ) ) {
+    if ( ( $f351c{$_} =~ /(Bestand|Abteilung|Hauptabteilung)/ ) && !( $f909{$_} =~ /einzel/ ) ) {
         intro($_);
         ead($_);
         extro();
@@ -1274,19 +1277,6 @@ sub ead {
         $writer->endTag("dao");
     }
     
-    # Write dao elements for related object links
-    $writer->startTag( "relatedmaterials");
-    foreach my $i ( 0 .. ( @{ $f8562u{$sysnum} } - 1 ) ) {
-        $writer->startTag( "p");
-        $writer->startTag( "extref",
-            [ $xlink, "href" ] => $f8562u{$sysnum}[$i],
-            [ $xlink, "title" ] => $f8562z{$sysnum}[$i]
-        );
-        $writer->endTag("extref");
-        $writer->endTag( "p");
-    }
-    $writer->endTag( "relatedmaterials");
-
     # Write repository element for the library/archive
     $writer->startTag("repository");
     $writer->characters( $f852a{$sysnum}[0] );
@@ -1449,6 +1439,20 @@ sub ead {
     simpletag_p( $f545{$sysnum},     "bioghist",        "Biographische Notiz" );
     simpletag_p( $f555{$sysnum},     "otherfindaid",    "Weitere Findmittel" );
     simpletag_p( $f561{$sysnum},     "custodhist",      "Angaben zur Herkunft" );
+    
+    # Write dao elements for related object links
+    $writer->startTag( "otherfindaid");
+    foreach my $i ( 0 .. ( @{ $f8562u{$sysnum} } - 1 ) ) {
+        $writer->startTag( "p");
+        $writer->startTag( "extref",
+            [ $xlink, "href" ] => $f8562u{$sysnum}[$i],
+            [ $xlink, "title" ] => $f8562z{$sysnum}[$i]
+        );
+        $writer->endTag("extref");
+        $writer->endTag( "p");
+    }
+    $writer->endTag( "otherfindaid");
+
 
     #Write controlacess element for persons, if there are 600 or 700 fields present (except 700$e=Aktenbildner fields)
     if (
