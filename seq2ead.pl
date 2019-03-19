@@ -1275,6 +1275,17 @@ sub ead {
             [ $xlink, "title" ] => $f8561z{$sysnum}[$i]
         );
         $writer->endTag("dao");
+
+        # Adding thumbnails for e-manuscripta
+        if ( $f8561u{$sysnum}[$i] =~ /e-manuscripta/ ) {
+            my $thumbnail = $f8561u{$sysnum}[$i];
+            $thumbnail =~ s/dx\.doi\.org/www.e-manuscripta.ch\/titlepage\/doi/g;
+            $writer->startTag(
+                "dao", [ $xlink, "href" ] => $thumbnail,
+                [ $xlink, "title" ] => 'thumbnail'
+            );
+            $writer->endTag("dao");
+        }
     }
     
     # Write repository element for the library/archive
